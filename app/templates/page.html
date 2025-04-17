@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>URL Shortener</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gray-100 flex items-center justify-center h-screen">
+    <div class="bg-white p-8 rounded-xl shadow-md w-full max-w-md">
+      <h1 class="text-2xl font-bold mb-4 text-center">URL Shortener</h1>
+
+      <!-- Shorten Section -->
+      <input
+        id="urlInput"
+        type="text"
+        placeholder="Enter a long URL..."
+        class="w-full px-4 py-2 border rounded mb-4"
+      />
+      <button
+        onclick="shortenURL()"
+        class="bg-blue-500 text-white px-4 py-2 rounded w-full mb-2"
+      >
+        Shorten
+      </button>
+
+      <button
+        onclick="getShortURL()"
+        class="bg-green-500 text-white px-4 py-2 rounded w-full mb-2"
+      >
+        Get Short URL
+      </button>
+
+      <button
+        onclick="deleteLongURL()"
+        class="bg-red-500 text-white px-4 py-2 rounded w-full mb-4"
+      >
+        Delete Long URL
+      </button>
+
+      <hr class="my-4" />
+
+      <!-- Lookup -->
+      <input
+        id="keyInput"
+        type="text"
+        placeholder="Enter short key (e.g. abc123)"
+        class="w-full px-4 py-2 border rounded mb-4"
+      />
+      <button
+        onclick="getOriginalURL()"
+        class="bg-green-500 text-white px-4 py-2 rounded w-full mb-2"
+      >
+        Get Original URL
+      </button>
+
+      <!-- Result Display Section (Only One) -->
+      <div
+        id="resultMessage"
+        class="mt-4 text-center font-semibold hidden"
+      ></div>
+    </div>
+
+    <script>
+      const resultDiv = document.getElementById("resultMessage");
+
+      function displayResult(message, isError = false) {
+        resultDiv.classList.remove("hidden");
+        resultDiv.innerHTML = message;
+        resultDiv.classList.remove("text-green-600", "text-red-600");
+        resultDiv.classList.add(isError ? "text-red-600" : "text-green-600");
+      }
+
+      async function shortenURL() {
+        const longURL = document.getElementById("urlInput").value.trim();
+        try {
+          const res = await fetch("http://localhost:5000/shorten", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ longURL }),
+          });
+
+          const data = await res.json();
+
+          if (res.ok) {
+            displayResult(
+              `Shortened: <a href="${data.shortURL}" target="_blank" class="text-blue-500 underline">${data.shortURL}</a>`
+            );
+            navigator.clipboard.writeText(data.shortURL);
+          } else {
+            displayResult(data.error || "Something went wrong", true);
+          }
+        } catch (err) {
+          displayResult("Failed to connect to backend", true);
+        }
+      }
+      async function getShortURL() {
+        const longURL = document.getElementById("urlInput").value.trim();
+        try {
+          const res = await fetch(`http://localhost:5000/find`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ longURL }),
+          });
+          const data = await res.json();
+
+          if (res.ok) {
+            displayResult(
+              `Short URL: <a href="${data.shortURL}" target="_blank" class="text-blue-500 underline">${data.shortURL}</a>`
+            );
+          } else {
+            displayResult(data.error || "Not found", true);
+          }
+        } catch (err) {
+          displayResult("Failed to connect to backend", true);
+        }
+      }
+      async function getOriginalURL() {
+        const shortURL = document.getElementById("keyInput").value.trim();
+        try {
+          const res = await fetch(`http://localhost:5000/lookup`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ shortURL }),
+          });
+          const data = await res.json();
+
+          if (res.ok) {
+            displayResult(
+              `Original: <a href="${data.longURL}" target="_blank" class="text-blue-500 underline">${data.longURL}</a>`
+            );
+          } else {
+            displayResult(data.error || "Not found", true);
+          }
+        } catch (err) {
+          displayResult("Failed to connect to backend", true);
+        }
+      }
+
+      async function deleteLongURL() {
+        const longURL = document.getElementById("urlInput").value.trim();
+        try {
+          const res = await fetch("http://localhost:5000/delete", {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ longURL }),
+          });
+
+          const data = await res.json();
+
+          if (res.ok) {
+            displayResult(data.message || "Long URL deleted.");
+          } else {
+            displayResult(data.error || "Not found", true);
+          }
+        } catch (err) {
+          displayResult("Failed to connect to backend", true);
+        }
+      }
+    </script>
+  </body>
+</html>
